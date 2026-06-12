@@ -1,0 +1,6 @@
+{
+  "name": "E-commerce product management system",
+  "description": "An interactive phone simulator containing a fully functional e-commerce ecosystem, settings, AI shopping assistant, notes, browser, admin dashboard, analytics, and interactive product experiences.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
