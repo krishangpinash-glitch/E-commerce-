@@ -15,6 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  ACTIONS_RUNNER_PRINT_SYSTEM_WARNINGS: "false"
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
