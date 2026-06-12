@@ -12,10 +12,49 @@ import {
   Sun, Moon, Play, UserCheck, ShieldCheck
 } from 'lucide-react';
 
+// Safe localStorage wrapper to prevent crash when cookies/localStorage are blocked (e.g. in sandbox iframes)
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(key) : null;
+    } catch (e) {
+      console.warn("Storage item fetch blocked or unavailable:", e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      console.warn("Storage write blocked or unavailable:", e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.warn("Storage remove item blocked or unavailable:", e);
+    }
+  },
+  clear: (): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {
+      console.warn("Storage clear blocked or unavailable:", e);
+    }
+  }
+};
+
 export default function App() {
   // 1. STATE INITIALIZATION (Binds fully to localStorage)
   const [settings, setSettings] = useState<PhoneSettings>(() => {
-    const saved = localStorage.getItem('sim_settings');
+    const saved = safeStorage.getItem('sim_settings');
     if (saved) return JSON.parse(saved);
     return {
       darkMode: true,
@@ -38,7 +77,7 @@ export default function App() {
   });
 
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('sim_products');
+    const saved = safeStorage.getItem('sim_products');
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Product[];
@@ -88,46 +127,46 @@ export default function App() {
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('sim_cart');
+    const saved = safeStorage.getItem('sim_cart');
     if (saved) return JSON.parse(saved);
     return [];
   });
 
   const [wishlist, setWishlist] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('sim_wishlist');
+    const saved = safeStorage.getItem('sim_wishlist');
     if (saved) return JSON.parse(saved);
     return [];
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('sim_orders');
+    const saved = safeStorage.getItem('sim_orders');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [notifications, setNotifications] = useState<PhoneNotification[]>(() => {
-    const saved = localStorage.getItem('sim_notifications');
+    const saved = safeStorage.getItem('sim_notifications');
     return saved ? JSON.parse(saved) : [
       { id: 'not-init', title: 'SmartCommerce Hub Connected', body: 'Customer app loaded directly. Onboarding active.', app: 'System', time: 'Just Now', read: false }
     ];
   });
 
   const [files, setFiles] = useState<FileDocument[]>(() => {
-    const saved = localStorage.getItem('sim_files');
+    const saved = safeStorage.getItem('sim_files');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [achievements, setAchievements] = useState<Achievement[]>(() => {
-    const saved = localStorage.getItem('sim_achievements');
+    const saved = safeStorage.getItem('sim_achievements');
     return saved ? JSON.parse(saved) : MOCK_ACHIEVEMENTS;
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem('sim_customers');
+    const saved = safeStorage.getItem('sim_customers');
     return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('sim_categories');
+    const saved = safeStorage.getItem('sim_categories');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
@@ -142,49 +181,55 @@ export default function App() {
 
   // 2. SYNCHRONOUS PERSISTENCE MECHANICS
   useEffect(() => {
-    localStorage.setItem('sim_settings', JSON.stringify(settings));
+    safeStorage.setItem('sim_settings', JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
-    localStorage.setItem('sim_products', JSON.stringify(products));
+    safeStorage.setItem('sim_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('sim_cart', JSON.stringify(cart));
+    safeStorage.setItem('sim_cart', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('sim_wishlist', JSON.stringify(wishlist));
+    safeStorage.setItem('sim_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem('sim_orders', JSON.stringify(orders));
+    safeStorage.setItem('sim_orders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('sim_notifications', JSON.stringify(notifications));
+    safeStorage.setItem('sim_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem('sim_files', JSON.stringify(files));
+    safeStorage.setItem('sim_files', JSON.stringify(files));
   }, [files]);
 
   useEffect(() => {
-    localStorage.setItem('sim_achievements', JSON.stringify(achievements));
+    safeStorage.setItem('sim_achievements', JSON.stringify(achievements));
   }, [achievements]);
 
   useEffect(() => {
-    localStorage.setItem('sim_customers', JSON.stringify(customers));
+    safeStorage.setItem('sim_customers', JSON.stringify(customers));
   }, [customers]);
 
   useEffect(() => {
-    localStorage.setItem('sim_categories', JSON.stringify(categories));
+    safeStorage.setItem('sim_categories', JSON.stringify(categories));
   }, [categories]);
 
   // Calculate local storage size for telemetry specs panel
   useEffect(() => {
-    const bytes = encodeURIComponent(JSON.stringify(localStorage)).length;
-    setStorageBytes(bytes);
+    try {
+      const bytes = typeof window !== 'undefined' && window.localStorage 
+        ? encodeURIComponent(JSON.stringify(window.localStorage)).length 
+        : 0;
+      setStorageBytes(bytes);
+    } catch (e) {
+      setStorageBytes(0);
+    }
   }, [settings, products, cart, wishlist, orders, notifications, files, customers, categories]);
 
   // CENTRAL NOTIFICATION SYSTEM LOG
@@ -267,7 +312,7 @@ export default function App() {
     }
     
     // Log user session
-    localStorage.setItem('sim_logged_user', JSON.stringify(matchingCust));
+    safeStorage.setItem('sim_logged_user', JSON.stringify(matchingCust));
     setSettings(prev => ({
       ...prev,
       userName: matchingCust!.name,
@@ -386,7 +431,7 @@ Grand Total Charged: $${(targetProduct.price * 0.88).toFixed(2)}
   // Reset local storage database to clear sandbox environment back to fresh defaults
   const handleFullReset = () => {
     if (confirm('Format whole SmartCommerce database and reset milestones?')) {
-      localStorage.clear();
+      safeStorage.clear();
       window.location.reload();
     }
   };

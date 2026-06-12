@@ -8,6 +8,44 @@ import {
 import { Product, CartItem, Address, Order, PhoneSettings, FileDocument, Customer } from '../types';
 import { COUPON_CODES, LIVE_STREAM_MESSAGES } from '../data';
 
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(key) : null;
+    } catch (e) {
+      console.warn("Storage item fetch blocked or unavailable:", e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch (e) {
+      console.warn("Storage write blocked or unavailable:", e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.warn("Storage remove item blocked or unavailable:", e);
+    }
+  },
+  clear: (): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {
+      console.warn("Storage clear blocked or unavailable:", e);
+    }
+  }
+};
+
 interface ECommerceProps {
   products: Product[];
   settings: PhoneSettings;
@@ -47,7 +85,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
 }) => {
   // --- AUTH STATES & ACCOUNTS SESSIONS ---
   const [currentUser, setCurrentUser] = useState<Customer | null>(() => {
-    const saved = localStorage.getItem('sim_logged_user');
+    const saved = safeStorage.getItem('sim_logged_user');
     if (saved) return JSON.parse(saved);
     return null;
   });
@@ -151,12 +189,12 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
       setAddressFullName(currentUser.name);
       setAddressEmail(currentUser.email);
       // Retrieve registered profile defaults
-      const savedStreet = localStorage.getItem(`addr_street_${currentUser.id}`) || '1402 Silicon Heights, Innovation Dr';
-      const savedCity = localStorage.getItem(`addr_city_${currentUser.id}`) || 'Sunnyvale';
-      const savedZip = localStorage.getItem(`addr_zip_${currentUser.id}`) || '94089';
-      const savedPhone = localStorage.getItem(`addr_phone_${currentUser.id}`) || '+1 (555) 019-2831';
-      const savedState = localStorage.getItem(`addr_state_${currentUser.id}`) || 'CA';
-      const savedLandmark = localStorage.getItem(`addr_landmark_${currentUser.id}`) || 'Opposite Green Spark Tech Park';
+      const savedStreet = safeStorage.getItem(`addr_street_${currentUser.id}`) || '1402 Silicon Heights, Innovation Dr';
+      const savedCity = safeStorage.getItem(`addr_city_${currentUser.id}`) || 'Sunnyvale';
+      const savedZip = safeStorage.getItem(`addr_zip_${currentUser.id}`) || '94089';
+      const savedPhone = safeStorage.getItem(`addr_phone_${currentUser.id}`) || '+1 (555) 019-2831';
+      const savedState = safeStorage.getItem(`addr_state_${currentUser.id}`) || 'CA';
+      const savedLandmark = safeStorage.getItem(`addr_landmark_${currentUser.id}`) || 'Opposite Green Spark Tech Park';
       setAddressStreet(savedStreet);
       setAddressCity(savedCity);
       setAddressZip(savedZip);
@@ -198,7 +236,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
     if (matchingCust) {
       const loggedIn: Customer = { ...matchingCust, status: 'active' };
       setCurrentUser(loggedIn);
-      localStorage.setItem('sim_logged_user', JSON.stringify(loggedIn));
+      safeStorage.setItem('sim_logged_user', JSON.stringify(loggedIn));
       // Update shared layout state
       onUpdateSettings({
         userName: loggedIn.name,
@@ -223,7 +261,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
       };
       onUpdateCustomers([newDemo, ...customers]);
       setCurrentUser(newDemo);
-      localStorage.setItem('sim_logged_user', JSON.stringify(newDemo));
+      safeStorage.setItem('sim_logged_user', JSON.stringify(newDemo));
       onUpdateSettings({
         userName: newDemo.name,
         userEmail: newDemo.email,
@@ -271,11 +309,11 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
       spent: 0
     };
 
-    // Store secure mock lock variables in localStorage
-    localStorage.setItem(`pwd_${newCust.email}`, signUpPassword.trim());
-    localStorage.setItem(`addr_street_${newCust.id}`, signUpStreet.trim() || '1402 Silicon Heights, Innovation Dr');
-    localStorage.setItem(`addr_city_${newCust.id}`, signUpCity.trim() || 'Sunnyvale');
-    localStorage.setItem(`addr_zip_${newCust.id}`, signUpZip.trim() || '94089');
+    // Store secure mock lock variables in safeStorage
+    safeStorage.setItem(`pwd_${newCust.email}`, signUpPassword.trim());
+    safeStorage.setItem(`addr_street_${newCust.id}`, signUpStreet.trim() || '1402 Silicon Heights, Innovation Dr');
+    safeStorage.setItem(`addr_city_${newCust.id}`, signUpCity.trim() || 'Sunnyvale');
+    safeStorage.setItem(`addr_zip_${newCust.id}`, signUpZip.trim() || '94089');
 
     // Update parent databases
     const updatedCustList = [newCust, ...customers];
@@ -283,7 +321,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
 
     // Dynamic sign-in
     setCurrentUser(newCust);
-    localStorage.setItem('sim_logged_user', JSON.stringify(newCust));
+    safeStorage.setItem('sim_logged_user', JSON.stringify(newCust));
     onUpdateSettings({
       userName: newCust.name,
       userEmail: newCust.email,
@@ -315,7 +353,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
     }
 
     // Retrieve saved password mockup (default is "password")
-    const correctPwd = localStorage.getItem(`pwd_${matchingCust.email}`) || 'password';
+    const correctPwd = safeStorage.getItem(`pwd_${matchingCust.email}`) || 'password';
     if (signInPassword.trim() !== correctPwd) {
       setAuthError('Incorrect Password credentials. Please try again.');
       return;
@@ -323,7 +361,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
 
     const loggedIn: Customer = { ...matchingCust, status: 'active' };
     setCurrentUser(loggedIn);
-    localStorage.setItem('sim_logged_user', JSON.stringify(loggedIn));
+    safeStorage.setItem('sim_logged_user', JSON.stringify(loggedIn));
     
     // Sync settings userName
     onUpdateSettings({
@@ -341,7 +379,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
   // Logout routine
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('sim_logged_user');
+    safeStorage.removeItem('sim_logged_user');
     onAddNotification('Logged Out', 'You have securely signed out of your account session.', 'Account');
     setSignInEmail('');
     setSignInPassword('');
@@ -363,9 +401,9 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
     e.preventDefault();
     if (!currentUser) return;
 
-    localStorage.setItem(`addr_street_${currentUser.id}`, addressStreet);
-    localStorage.setItem(`addr_city_${currentUser.id}`, addressCity);
-    localStorage.setItem(`addr_zip_${currentUser.id}`, addressZip);
+    safeStorage.setItem(`addr_street_${currentUser.id}`, addressStreet);
+    safeStorage.setItem(`addr_city_${currentUser.id}`, addressCity);
+    safeStorage.setItem(`addr_zip_${currentUser.id}`, addressZip);
 
     // Save display attributes to main profile
     const updatedCustomers = customers.map(c => 
@@ -375,7 +413,7 @@ export const ECommerceApp: React.FC<ECommerceProps> = ({
     
     const updatedSession = { ...currentUser, name: addressFullName };
     setCurrentUser(updatedSession);
-    localStorage.setItem('sim_logged_user', JSON.stringify(updatedSession));
+    safeStorage.setItem('sim_logged_user', JSON.stringify(updatedSession));
 
     onUpdateSettings({ userName: addressFullName });
     onAddNotification('Profile Updated', 'Address credentials and bio metrics synchronized locally.', 'Account');
